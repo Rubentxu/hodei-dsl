@@ -2,7 +2,8 @@
 
 ## Resumen Ejecutivo
 
-La API Core de Hodei Pipeline DSL define las interfaces fundamentales y contratos que permiten la creación, compilación y ejecución de pipelines de CI/CD con **type-safety completa** y **compatibilidad total con Jenkins**.
+La API Core de Hodei Pipeline DSL define las interfaces fundamentales y contratos que permiten la creación, compilación y 
+ejecución de pipelines de CI/CD con **type-safety completa** y **compatibilidad total con Jenkins**.
 
 ## Principios de Diseño de la API
 
