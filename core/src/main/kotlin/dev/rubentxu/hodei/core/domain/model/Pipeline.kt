@@ -1,5 +1,6 @@
 package dev.rubentxu.hodei.core.domain.model
 
+import dev.rubentxu.hodei.core.dsl.builders.StageBuilder
 import java.util.*
 
 /**
@@ -161,6 +162,21 @@ public class PipelineBuilder {
     public fun metadata(key: String, value: Any): PipelineBuilder = apply {
         require(key.isNotBlank()) { "Metadata key cannot be blank" }
         metadata[key] = value
+    }
+    
+    /**
+     * Adds a stage to the pipeline using DSL syntax
+     * @param name Stage name (must be unique)
+     * @param block Stage configuration block
+     */
+    public fun stage(name: String, block: StageBuilder.() -> Unit): PipelineBuilder = apply {
+        require(stages.none { it.name == name }) {
+            "Stage with name '$name' already exists"
+        }
+        
+        val stageBuilder = StageBuilder(name)
+        stageBuilder.apply(block)
+        stages.add(stageBuilder.build())
     }
     
     /**

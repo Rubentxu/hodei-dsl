@@ -215,7 +215,8 @@ public data class ScriptConfig(
     val defaultImports: Set<String> = setOf(
         "dev.rubentxu.hodei.core.dsl.*",
         "dev.rubentxu.hodei.core.dsl.builders.*",
-        "dev.rubentxu.hodei.core.domain.model.*"
+        "dev.rubentxu.hodei.core.domain.model.*",
+        "dev.rubentxu.hodei.core.dsl.pipeline"
     ),
     
     /**

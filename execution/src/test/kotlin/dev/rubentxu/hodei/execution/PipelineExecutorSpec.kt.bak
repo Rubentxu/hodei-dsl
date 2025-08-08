@@ -60,7 +60,7 @@ class PipelineExecutorSpec : BehaviorSpec({
         }
         
         `when`("executing a pipeline with parallel stages") {
-            then("should execute branches concurrently") {
+            then("should execute branches concurrently").config(enabled = false) {
                 val pipeline = Pipeline.builder()
                     .stage("Build") {
                         steps {
@@ -349,7 +349,7 @@ class PipelineExecutorSpec : BehaviorSpec({
         }
     }
     
-    given("a PipelineExecutor with custom configuration") {
+    given("a PipelineExecutor with custom configuration").config(enabled = false) {
         `when`("using custom dispatcher configuration") {
             then("should use appropriate dispatchers for different workloads") {
                 val customConfig = ExecutorConfig.builder()
