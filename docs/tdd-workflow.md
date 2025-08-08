@@ -61,8 +61,6 @@ git commit -m "feat(core): add pipeline DSL basic structure
 - Support for stage definition and execution
 - Add comprehensive BDD tests with Kotest
 
-BREAKING CHANGE: Initial API implementation
-
 Closes #1"
 
 # 9. Push y crear PR si es necesario
@@ -187,11 +185,11 @@ Fixes #23
 # Breaking change
 feat(api)!: redesign plugin API for better type safety
 
-BREAKING CHANGE: Plugin interface now requires explicit
-type parameters for better compile-time validation.
+Plugin interface now requires explicit type parameters for better 
+compile-time validation.
 
 Migration guide:
-- Old: class MyPlugin : PipelinePlugin
+- Old: class MyPlugin : PipelinePlugin  
 - New: class MyPlugin : PipelinePlugin<Pipeline>
 
 # Documentation

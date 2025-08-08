@@ -22,9 +22,9 @@ Esta documentación está organizada por módulos y fases de implementación:
 - [**Plugin Development Guide**](./plugin-development.md) - Guía para desarrollar plugins
 
 ### 💡 Ejemplos y Casos de Uso
-- [**Ejemplos Básicos**](./examples/basic.md) - Pipelines simples
-- [**Ejemplos Avanzados**](./examples/advanced.md) - Casos de uso complejos
-- [**Integración**](./examples/integration.md) - Integración con sistemas existentes
+- [**Ejemplos Básicos**](./examples/basic.md) - Pipelines simples y introductorios
+- [**Ejemplos Avanzados**](./examples/advanced.md) - Casos empresariales complejos
+- [**Integración**](./examples/integration.md) - Migración desde Jenkins, GitLab CI, GitHub Actions
 
 ### 📊 Diagramas y Visualizaciones
 - [**Diagramas de Arquitectura**](./diagrams/) - Diagramas técnicos
