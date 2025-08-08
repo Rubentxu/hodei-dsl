@@ -80,7 +80,8 @@ public enum class PipelineStatus {
  * Builder for Pipeline instances following builder pattern
  * 
  * Provides fluent API for constructing Pipeline instances with validation
- * and sensible defaults.
+ * and sensible defaults. This is the programmatic builder used internally
+ * by the DSL builder.
  */
 public class PipelineBuilder {
     private var id: String = UUID.randomUUID().toString()
@@ -176,3 +177,4 @@ public class PipelineBuilder {
         metadata = metadata.toMap() // Defensive copy
     )
 }
+
