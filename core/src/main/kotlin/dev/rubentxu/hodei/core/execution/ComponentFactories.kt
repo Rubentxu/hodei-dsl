@@ -94,7 +94,7 @@ public class DefaultPipelineLoggerFactory : PipelineLoggerFactory {
     override fun createDefault(): PipelineLogger = DefaultPipelineLogger()
     
     override fun createForEnvironment(environment: String): PipelineLogger = 
-        DefaultPipelineLogger() // TODO: Add log level configuration when needed
+        ConfigurablePipelineLoggerFactory().createForEnvironment(environment)
 }
 
 /**

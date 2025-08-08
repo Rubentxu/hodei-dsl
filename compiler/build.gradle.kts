@@ -9,6 +9,9 @@ dependencies {
     // Core module
     api(project(":core"))
     
+    // Execution module dependency for tests
+    testImplementation(project(":execution"))
+    
     // Kotlin scripting - use available dependencies
     implementation(libs.kotlin.scripting.jvm)
     implementation(libs.kotlin.scripting.dependencies)

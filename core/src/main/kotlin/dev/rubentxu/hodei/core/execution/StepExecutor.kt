@@ -14,7 +14,10 @@ import kotlin.time.Duration.Companion.seconds
  * workload-aware dispatcher selection, timeout handling, and integration with CommandLauncher.
  */
 public class StepExecutor(
-    private val config: StepExecutorConfig = StepExecutorConfig(enableMetrics = true)
+    private val config: StepExecutorConfig = StepExecutorConfig(enableMetrics = true),
+    private val stashStorage: StashStorage = FileSystemStashStorage(
+        java.nio.file.Paths.get(System.getProperty("java.io.tmpdir")).resolve("hodei-stash")
+    )
 ) {
     
     private val workloadAnalyzer = WorkloadAnalyzer()
@@ -420,40 +423,93 @@ public class StepExecutor(
     }
     
     /**
-     * Executes stash step
+     * Executes stash step with real file operations
      */
     private suspend fun executeStashStep(step: Step.Stash, context: ExecutionContext): StepResult {
         context.logger.info("Stashing files: ${step.includes}")
+        val startTime = Instant.now()
         
-        return StepResult(
-            stepName = "stash",
-            status = StepStatus.SUCCESS,
-            duration = Duration.ofMillis(200),
-            output = "Stashed files: ${step.includes}",
-            metadata = mapOf(
-                "stashName" to step.name,
-                "includes" to step.includes,
-                "excludes" to step.excludes,
-                "stashedFiles" to listOf("file1.txt", "file2.txt") // Mock
+        return try {
+            val stashResult = stashStorage.stash(
+                stashName = step.name,
+                workspaceRoot = context.workspace.rootDir,
+                includes = step.includes,
+                excludes = step.excludes
             )
-        )
+            
+            val endTime = Instant.now()
+            val duration = Duration.between(startTime, endTime)
+            
+            StepResult(
+                stepName = "stash",
+                status = StepStatus.SUCCESS,
+                duration = duration,
+                output = "Stashed files: ${step.includes}",
+                metadata = mapOf(
+                    "stashName" to stashResult.stashName,
+                    "includes" to step.includes,
+                    "excludes" to step.excludes,
+                    "stashedFiles" to stashResult.stashedFiles,
+                    "stashLocation" to stashResult.stashLocation,
+                    "timestamp" to stashResult.timestamp,
+                    "fileCount" to stashResult.fileCount,
+                    "totalSize" to stashResult.totalSize,
+                    "checksums" to stashResult.checksums
+                )
+            )
+        } catch (e: Exception) {
+            val endTime = Instant.now()
+            val duration = Duration.between(startTime, endTime)
+            
+            StepResult(
+                stepName = "stash",
+                status = StepStatus.FAILURE,
+                duration = duration,
+                output = "Failed to stash files: ${e.message}",
+                error = e
+            )
+        }
     }
     
     /**
-     * Executes unstash step
+     * Executes unstash step with real file operations
      */
     private suspend fun executeUnstashStep(step: Step.Unstash, context: ExecutionContext): StepResult {
         context.logger.info("Unstashing: ${step.name}")
+        val startTime = Instant.now()
         
-        return StepResult(
-            stepName = "unstash",
-            status = StepStatus.SUCCESS,
-            duration = Duration.ofMillis(150),
-            output = "Unstashed: ${step.name}",
-            metadata = mapOf(
-                "unstashName" to step.name
+        return try {
+            val unstashResult = stashStorage.unstash(
+                stashName = step.name,
+                workspaceRoot = context.workspace.rootDir
             )
-        )
+            
+            val endTime = Instant.now()
+            val duration = Duration.between(startTime, endTime)
+            
+            StepResult(
+                stepName = "unstash",
+                status = StepStatus.SUCCESS,
+                duration = duration,
+                output = "Unstashed: ${step.name}",
+                metadata = mapOf(
+                    "unstashName" to unstashResult.stashName,
+                    "restoredFiles" to unstashResult.restoredFiles,
+                    "fileCount" to unstashResult.fileCount
+                )
+            )
+        } catch (e: Exception) {
+            val endTime = Instant.now()
+            val duration = Duration.between(startTime, endTime)
+            
+            StepResult(
+                stepName = "unstash",
+                status = StepStatus.FAILURE,
+                duration = duration,
+                output = "Failed to unstash: ${e.message}",
+                error = e
+            )
+        }
     }
     
     /**

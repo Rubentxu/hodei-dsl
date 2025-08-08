@@ -41,8 +41,9 @@ public sealed class WhenCondition {
     }
     
     /**
-     * Custom expression condition
+     * Custom expression condition (deprecated - use Predicate instead)
      */
+    @Deprecated("Use WhenCondition.predicate() instead for type-safe functional predicates")
     public data class Expression(
         val expression: String
     ) : WhenCondition() {
@@ -51,6 +52,15 @@ public sealed class WhenCondition {
             // For now, return true as a placeholder
             return true
         }
+    }
+    
+    /**
+     * Functional predicate condition - type-safe and performant
+     */
+    public data class Predicate(
+        val predicate: (Map<String, Any>) -> Boolean
+    ) : WhenCondition() {
+        override fun evaluate(context: Map<String, Any>): Boolean = predicate(context)
     }
     
     /**
@@ -109,9 +119,16 @@ public sealed class WhenCondition {
             Environment(name, value)
         
         /**
-         * Creates expression condition
+         * Creates expression condition (deprecated - use predicate instead)
          */
+        @Deprecated("Use predicate() instead for type-safe functional predicates")
         public fun expression(expression: String): Expression = Expression(expression)
+        
+        /**
+         * Creates functional predicate condition - type-safe and performant
+         */
+        public fun predicate(predicate: (Map<String, Any>) -> Boolean): Predicate = 
+            Predicate(predicate)
         
         /**
          * Creates changeset condition
