@@ -5,6 +5,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldContain
+import kotlin.script.experimental.api.*
 
 /**
  * BDD Specification for Template-Based Script Compiler
