@@ -57,6 +57,83 @@ public sealed class Step {
         override val type: StepType = StepType.WITH_ENV
     }
     
+    /**
+     * Parallel execution step
+     */
+    public data class Parallel(
+        val branches: Map<String, List<Step>>,
+        override val timeout: Duration? = null
+    ) : Step() {
+        override val type: StepType = StepType.PARALLEL
+    }
+    
+    /**
+     * Retry wrapper step
+     */
+    public data class Retry(
+        val times: Int,
+        val steps: List<Step>,
+        override val timeout: Duration? = null
+    ) : Step() {
+        override val type: StepType = StepType.RETRY
+    }
+    
+    /**
+     * Timeout wrapper step
+     */
+    public data class Timeout(
+        val duration: Duration,
+        val steps: List<Step>,
+        override val timeout: Duration? = null
+    ) : Step() {
+        override val type: StepType = StepType.TIMEOUT
+    }
+    
+    /**
+     * Archive artifacts step
+     */
+    public data class ArchiveArtifacts(
+        val artifacts: String,
+        val allowEmptyArchive: Boolean = false,
+        val fingerprint: Boolean = false,
+        override val timeout: Duration? = null
+    ) : Step() {
+        override val type: StepType = StepType.ARCHIVE_ARTIFACTS
+    }
+    
+    /**
+     * Publish test results step
+     */
+    public data class PublishTestResults(
+        val testResultsPattern: String,
+        val allowEmptyResults: Boolean = false,
+        override val timeout: Duration? = null
+    ) : Step() {
+        override val type: StepType = StepType.JUNIT
+    }
+    
+    /**
+     * Stash step
+     */
+    public data class Stash(
+        val name: String,
+        val includes: String,
+        val excludes: String = "",
+        override val timeout: Duration? = null
+    ) : Step() {
+        override val type: StepType = StepType.CUSTOM
+    }
+    
+    /**
+     * Unstash step
+     */
+    public data class Unstash(
+        val name: String,
+        override val timeout: Duration? = null
+    ) : Step() {
+        override val type: StepType = StepType.CUSTOM
+    }
+    
     public companion object {
         /**
          * Creates a shell execution step
@@ -98,6 +175,13 @@ public sealed class Step {
         is Echo -> copy(timeout = timeout)
         is Dir -> copy(timeout = timeout)
         is WithEnv -> copy(timeout = timeout)
+        is Parallel -> copy(timeout = timeout)
+        is Retry -> copy(timeout = timeout)
+        is Timeout -> copy(timeout = timeout)
+        is ArchiveArtifacts -> copy(timeout = timeout)
+        is PublishTestResults -> copy(timeout = timeout)
+        is Stash -> copy(timeout = timeout)
+        is Unstash -> copy(timeout = timeout)
     }
 }
 

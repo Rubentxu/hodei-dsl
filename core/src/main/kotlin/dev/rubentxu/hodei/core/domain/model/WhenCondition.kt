@@ -125,10 +125,22 @@ public sealed class WhenCondition {
             And(conditions.toList())
         
         /**
+         * Creates AND condition from list
+         */
+        public fun and(conditions: List<WhenCondition>): And = 
+            And(conditions)
+        
+        /**
          * Creates OR condition
          */
         public fun or(vararg conditions: WhenCondition): Or = 
             Or(conditions.toList())
+        
+        /**
+         * Creates OR condition from list
+         */
+        public fun or(conditions: List<WhenCondition>): Or = 
+            Or(conditions)
         
         /**
          * Creates NOT condition
