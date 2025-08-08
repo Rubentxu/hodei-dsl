@@ -11,4 +11,13 @@ dependencies {
     
     // Additional core-specific dependencies
     implementation(libs.bundles.kotlinxEcosystem)
+    
+    // Testing dependencies
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.assertions.core)
+    testImplementation(libs.mockk)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
