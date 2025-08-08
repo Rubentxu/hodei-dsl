@@ -1,0 +1,135 @@
+# Version catalog for Hodei Pipeline DSL project
+# Centralized dependency management following best practices
+
+[versions]
+# Kotlin ecosystem
+kotlin = "2.2.0"
+kotlinxDatetime = "0.6.1"
+kotlinxSerializationJSON = "1.7.3"
+kotlinxCoroutines = "1.9.0"
+
+# Kotlin scripting and code generation
+kotlinScripting = "2.2.0"
+kotlinPoet = "1.16.0"
+
+# Testing framework
+kotest = "5.8.0"
+mockk = "1.13.8"
+testcontainers = "1.19.3"
+
+# CLI and configuration
+clikt = "4.2.2"
+hoplite = "2.8.2"
+
+# HTTP and networking
+ktor = "2.3.7"
+
+# Monitoring and metrics
+micrometer = "1.12.1"
+opentelemetry = "1.34.1"
+
+# Logging
+logback = "1.4.14"
+kotlinLogging = "3.0.5"
+
+# Process execution
+ztExec = "1.12"
+
+# File operations
+commonsIo = "2.15.1"
+
+# Docker and Kubernetes
+dockerJava = "3.3.4"
+kubernetesClient = "18.0.1"
+
+# Reflection and scanning
+classgraph = "4.8.165"
+
+# Spring integration (optional)
+springBoot = "3.2.1"
+
+[libraries]
+# Kotlin core
+kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+
+# Kotlin ecosystem
+kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+kotlinxSerialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJSON" }
+kotlinxCoroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-jdk8 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-slf4j = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactor", version.ref = "kotlinxCoroutines" }
+
+# Kotlin scripting
+kotlin-scripting-jvm = { module = "org.jetbrains.kotlin:kotlin-scripting-jvm", version.ref = "kotlinScripting" }
+kotlin-scripting-dependencies = { module = "org.jetbrains.kotlin:kotlin-scripting-dependencies", version.ref = "kotlinScripting" }
+kotlin-scripting-dependencies-maven = { module = "org.jetbrains.kotlin:kotlin-scripting-dependencies-maven", version.ref = "kotlinScripting" }
+
+# Code generation
+kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinPoet" }
+
+# Testing
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+kotest-extensions-testcontainers = { module = "io.kotest.extensions:kotest-extensions-testcontainers", version = "2.0.2" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+testcontainers-core = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+
+# CLI framework
+clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }
+
+# Configuration
+hoplite-core = { module = "com.sksamuel.hoplite:hoplite-core", version.ref = "hoplite" }
+hoplite-yaml = { module = "com.sksamuel.hoplite:hoplite-yaml", version.ref = "hoplite" }
+
+# HTTP client
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+
+# Monitoring and metrics
+micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
+micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
+
+# OpenTelemetry
+opentelemetry-api = { module = "io.opentelemetry:opentelemetry-api", version.ref = "opentelemetry" }
+opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk", version.ref = "opentelemetry" }
+
+# Logging
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+kotlin-logging = { module = "io.github.microutils:kotlin-logging-jvm", version.ref = "kotlinLogging" }
+
+# Process execution
+zt-exec = { module = "org.zeroturnaround:zt-exec", version.ref = "ztExec" }
+
+# File operations
+commons-io = { module = "commons-io:commons-io", version.ref = "commonsIo" }
+
+# Docker client
+docker-java-core = { module = "com.github.docker-java:docker-java-core", version.ref = "dockerJava" }
+docker-java-transport-httpclient5 = { module = "com.github.docker-java:docker-java-transport-httpclient5", version.ref = "dockerJava" }
+
+# Kubernetes client
+kubernetes-client = { module = "io.kubernetes:client-java", version.ref = "kubernetesClient" }
+
+# Reflection and scanning
+classgraph = { module = "io.github.classgraph:classgraph", version.ref = "classgraph" }
+
+# Spring integration (optional)
+spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "springBoot" }
+spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure", version.ref = "springBoot" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "springBoot" }
+
+# Libraries can be bundled together for easier import
+[bundles]
+kotlinxEcosystem = ["kotlinxDatetime", "kotlinxSerialization", "kotlinxCoroutines"]
+testing = ["kotest-runner-junit5", "kotest-assertions-core", "mockk"]
+logging = ["logback-classic", "kotlin-logging"]
+monitoring = ["micrometer-core", "micrometer-prometheus"]
+
+[plugins]
+kotlinPluginSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
