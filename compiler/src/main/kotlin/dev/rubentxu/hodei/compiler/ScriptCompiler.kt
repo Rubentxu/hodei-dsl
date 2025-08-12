@@ -181,9 +181,15 @@ public class ScriptCompiler(
                 
                 when (evaluationResult) {
                     is ResultWithDiagnostics.Success -> {
-                        // Get the script evaluation result
+                        // Get the script evaluation result and unwrap ResultValue
                         val scriptResult = evaluationResult.value.returnValue
-                        ExecutionResult.Success(result = scriptResult)
+                        val unwrappedResult = when (scriptResult) {
+                            is ResultValue.Value -> scriptResult.value
+                            is ResultValue.Unit -> Unit
+                            is ResultValue.Error -> throw scriptResult.error
+                            else -> scriptResult
+                        }
+                        ExecutionResult.Success(result = unwrappedResult)
                     }
                     is ResultWithDiagnostics.Failure -> {
                         val errors = evaluationResult.reports.joinToString("; ") { it.message }
