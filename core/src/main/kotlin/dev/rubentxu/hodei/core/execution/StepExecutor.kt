@@ -2,6 +2,8 @@ package dev.rubentxu.hodei.core.execution
 
 import dev.rubentxu.hodei.core.domain.model.*
 import dev.rubentxu.hodei.core.execution.*
+import dev.rubentxu.hodei.core.execution.handlers.StepHandlerRegistry
+import dev.rubentxu.hodei.core.execution.handlers.DefaultHandlerRegistration
 import kotlinx.coroutines.*
 import java.time.Duration
 import java.time.Instant
@@ -21,6 +23,13 @@ public class StepExecutor(
 ) {
     
     private val workloadAnalyzer = WorkloadAnalyzer()
+    
+    init {
+        // Ensure default handlers are registered
+        if (!DefaultHandlerRegistration.areDefaultHandlersRegistered()) {
+            DefaultHandlerRegistration.registerDefaultHandlers()
+        }
+    }
     
     /**
      * Executes a single step with complete lifecycle management
@@ -83,11 +92,22 @@ public class StepExecutor(
     
     /**
      * Internal step execution based on step type
+     * 
+     * Uses new handler system when available, falls back to legacy implementation
      */
+    @Suppress("UNCHECKED_CAST")
     private suspend fun executeStepInternal(step: Step, context: ExecutionContext): StepResult {
+        // Try to use new handler system first
+        if (StepHandlerRegistry.hasHandler(step::class)) {
+            val handler = StepHandlerRegistry.getHandler(step)
+            return (handler as dev.rubentxu.hodei.core.execution.handlers.AbstractStepHandler<Step>)
+                .executeWithLifecycle(step, context, config)
+        }
+        
+        // Fall back to legacy implementation for steps without handlers
         return when (step) {
             is Step.Shell -> executeShellStep(step, context)
-            is Step.Echo -> executeEchoStep(step, context)
+            is Step.Echo -> executeEchoStep(step, context) // This should use handler now
             is Step.Dir -> executeDirStep(step, context)
             is Step.WithEnv -> executeWithEnvStep(step, context)
             is Step.Parallel -> executeParallelStep(step, context)

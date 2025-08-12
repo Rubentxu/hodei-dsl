@@ -55,7 +55,7 @@ public class AgentBuilder {
         this.agent = builder.build()
     }
     
-    internal fun build(): Agent = agent ?: Agent.any()
+    public fun build(): Agent = agent ?: Agent.any()
 }
 
 /**
@@ -66,7 +66,7 @@ public class DockerAgentBuilder {
     public var image: String = ""
     public var args: String = ""
     
-    internal fun build(): Agent.Docker {
+    public fun build(): Agent.Docker {
         require(image.isNotEmpty()) { "Docker image cannot be empty" }
         return Agent.docker(image, args)
     }
@@ -79,7 +79,7 @@ public class DockerAgentBuilder {
 public class KubernetesAgentBuilder {
     public var yaml: String = ""
     
-    internal fun build(): Agent.Kubernetes {
+    public fun build(): Agent.Kubernetes {
         require(yaml.isNotEmpty()) { "Kubernetes YAML configuration cannot be empty" }
         return Agent.kubernetes(yaml)
     }

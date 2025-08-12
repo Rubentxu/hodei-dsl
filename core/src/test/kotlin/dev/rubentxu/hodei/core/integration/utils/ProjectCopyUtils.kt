@@ -50,7 +50,7 @@ public object ProjectCopyUtils {
             copyProjectFiltered(projectRoot, tempDir)
             
             // Copy the filtered project to container
-            container.withCopyFileToContainer(
+            container.copyFileToContainer(
                 MountableFile.forHostPath(tempDir),
                 containerPath
             )

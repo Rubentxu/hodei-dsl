@@ -2,6 +2,7 @@ package dev.rubentxu.hodei.core.dsl.builders
 
 import dev.rubentxu.hodei.core.dsl.annotations.PipelineDSL
 import dev.rubentxu.hodei.core.domain.model.*
+import kotlin.BuilderInference
 
 /**
  * DSL Builder for Stage construction
@@ -12,11 +13,11 @@ import dev.rubentxu.hodei.core.domain.model.*
  */
 @PipelineDSL
 public class StageBuilder(private val name: String) {
-    private val steps: MutableList<Step> = mutableListOf()
+    private val steps: MutableList<Step> by lazy { mutableListOf() }
     private var agent: Agent? = null
     private var environment: Map<String, String> = emptyMap()
     private var whenCondition: WhenCondition? = null
-    private val postActions: MutableList<PostAction> = mutableListOf()
+    private val postActions: MutableList<PostAction> by lazy { mutableListOf() }
     
     /**
      * Configures agent for this stage (overrides global agent)
@@ -81,8 +82,16 @@ public class StageBuilder(private val name: String) {
      * Builds the final Stage instance
      * @return Immutable Stage instance
      */
-    internal fun build(): Stage {
-        require(steps.isNotEmpty()) { "Stage must contain at least one step" }
+    public fun build(): Stage {
+        // Allow stages with only post actions or when conditions
+        if (steps.isEmpty() && postActions.isEmpty() && whenCondition == null) {
+            require(false) { "Stage '$name' must contain at least one step, post action, or when condition" }
+        }
+        
+        // If no steps but has post actions, that's valid (post-only stage)
+        if (steps.isEmpty() && postActions.isNotEmpty()) {
+            println("INFO: Stage '$name' has only post actions, no main steps.")
+        }
         
         return Stage(
             name = name,

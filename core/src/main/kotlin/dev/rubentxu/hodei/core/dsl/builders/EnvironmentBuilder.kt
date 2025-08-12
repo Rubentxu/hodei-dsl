@@ -10,7 +10,7 @@ import dev.rubentxu.hodei.core.dsl.annotations.PipelineDSL
  */
 @PipelineDSL
 public class EnvironmentBuilder {
-    private val environment: MutableMap<String, String> = mutableMapOf()
+    private val environment: MutableMap<String, String> by lazy { mutableMapOf() }
     
     /**
      * Set an environment variable
@@ -33,7 +33,7 @@ public class EnvironmentBuilder {
         vars.forEach { (name, value) -> set(name, value) }
     }
     
-    internal fun build(): Map<String, String> = environment.toMap()
+    public fun build(): Map<String, String> = environment.toMap()
     
     private companion object {
         private val VALID_ENV_VAR_REGEX = "^[a-zA-Z_][a-zA-Z0-9_]*$".toRegex()

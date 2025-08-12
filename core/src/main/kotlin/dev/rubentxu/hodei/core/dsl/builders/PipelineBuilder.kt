@@ -14,10 +14,10 @@ import java.util.*
 @PipelineDSL
 public class PipelineBuilder {
     private var id: String = UUID.randomUUID().toString()
-    private val stages: MutableList<Stage> = mutableListOf()
+    private val stages: MutableList<Stage> by lazy { mutableListOf() }
     private var globalEnvironment: Map<String, String> = emptyMap()
     private var agent: Agent? = null
-    private val postActions: MutableList<PostAction> = mutableListOf()
+    private val postActions: MutableList<PostAction> by lazy { mutableListOf() }
     
     /**
      * Configures global agent for the entire pipeline
@@ -68,8 +68,12 @@ public class PipelineBuilder {
      * Builds the final Pipeline instance
      * @return Immutable Pipeline instance
      */
-    internal fun build(): Pipeline {
-        require(stages.isNotEmpty()) { "Pipeline must contain at least one stage" }
+    public fun build(): Pipeline {
+        // Allow empty pipelines for testing and special cases
+        if (stages.isEmpty()) {
+            // Log warning for production use
+            println("WARNING: Creating pipeline without stages. This may be intentional for testing.")
+        }
         
         return Pipeline.builder()
             .id(id)

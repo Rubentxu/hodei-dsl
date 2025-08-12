@@ -69,7 +69,7 @@ public class WhenBuilder {
         this.condition = WhenCondition.not(innerCondition)
     }
     
-    internal fun build(): WhenCondition = condition ?: WhenCondition.expression("true")
+    public fun build(): WhenCondition = condition ?: WhenCondition.expression("true")
 }
 
 /**
@@ -77,7 +77,7 @@ public class WhenBuilder {
  */
 @PipelineDSL
 public class AllOfBuilder {
-    private val conditions: MutableList<WhenCondition> = mutableListOf()
+    private val conditions: MutableList<WhenCondition> by lazy { mutableListOf() }
     
     /**
      * Add branch condition
@@ -100,7 +100,7 @@ public class AllOfBuilder {
         conditions.add(WhenCondition.expression(expression))
     }
     
-    internal fun build(): WhenCondition.And = WhenCondition.and(conditions)
+    public fun build(): WhenCondition.And = WhenCondition.and(conditions)
 }
 
 /**
@@ -108,7 +108,7 @@ public class AllOfBuilder {
  */
 @PipelineDSL
 public class AnyOfBuilder {
-    private val conditions: MutableList<WhenCondition> = mutableListOf()
+    private val conditions: MutableList<WhenCondition> by lazy { mutableListOf() }
     
     /**
      * Add branch condition
@@ -131,5 +131,5 @@ public class AnyOfBuilder {
         conditions.add(WhenCondition.expression(expression))
     }
     
-    internal fun build(): WhenCondition.Or = WhenCondition.or(conditions)
+    public fun build(): WhenCondition.Or = WhenCondition.or(conditions)
 }

@@ -1,10 +1,13 @@
 package dev.rubentxu.hodei.core.integration.container
 
 import dev.rubentxu.hodei.core.domain.model.Pipeline
+import dev.rubentxu.hodei.core.domain.model.PostAction
+import dev.rubentxu.hodei.core.domain.model.PostCondition
 import dev.rubentxu.hodei.core.domain.model.Stage
 import dev.rubentxu.hodei.core.domain.model.Step
 import dev.rubentxu.hodei.core.execution.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import org.testcontainers.containers.GenericContainer
 import java.nio.file.Path
 import java.time.Instant
@@ -27,7 +30,7 @@ public class ContainerPipelineExecutor(
     /**
      * Executes a complete pipeline in the container
      */
-    public suspend fun execute(pipeline: Pipeline): ContainerExecutionResult {
+    public fun execute(pipeline: Pipeline): ContainerExecutionResult {
         val startTime = Instant.now()
         val stageResults = mutableListOf<ContainerStageResult>()
         val artifacts = mutableListOf<String>()
@@ -88,7 +91,7 @@ public class ContainerPipelineExecutor(
     /**
      * Executes a single stage in the container
      */
-    private suspend fun executeStage(
+    private fun executeStage(
         stage: Stage,
         globalEnvironment: Map<String, String>
     ): ContainerStageResult {
@@ -114,6 +117,26 @@ public class ContainerPipelineExecutor(
                 // Collect artifacts if this is an archive step
                 if (step is Step.ArchiveArtifacts) {
                     artifacts.addAll(findArtifacts(step.artifacts))
+                }
+            }
+            
+            // Execute post actions
+            val stageSuccess = stepResults.all { it.success }
+            for (postAction in stage.post) {
+                val shouldExecute = when (postAction.condition) {
+                    PostCondition.ALWAYS -> true
+                    PostCondition.SUCCESS -> stageSuccess
+                    PostCondition.FAILURE -> !stageSuccess
+                    PostCondition.UNSTABLE -> false // TODO: implement unstable detection
+                    PostCondition.CHANGED -> false // TODO: implement change detection
+                    else -> false
+                }
+                
+                if (shouldExecute) {
+                    for (postStep in postAction.steps) {
+                        val postStepResult = executeStep(postStep, stageEnvironment)
+                        stepResults.add(postStepResult)
+                    }
                 }
             }
             
@@ -149,27 +172,29 @@ public class ContainerPipelineExecutor(
     /**
      * Executes a single step in the container
      */
-    private suspend fun executeStep(
+    private fun executeStep(
         step: Step,
         environment: Map<String, String>
     ): ContainerStepResult {
         val startTime = Instant.now()
         
         try {
-            val result = when (step) {
-                is Step.Shell -> {
-                    commandLauncher.execute(step.script, workspaceDir, environment)
-                }
-                is Step.Echo -> {
-                    commandLauncher.execute("echo '${step.message}'", workspaceDir, environment)
-                }
-                is Step.ArchiveArtifacts -> {
-                    // For archive artifacts, we just verify the files exist
-                    commandLauncher.execute("find . -path '${step.artifacts}' -type f", workspaceDir, environment)
-                }
-                else -> {
-                    // For unsupported steps, just log and continue
-                    CommandResult(0, "Step ${step::class.simpleName} not implemented", "", 0, true)
+            val result = runBlocking {
+                when (step) {
+                    is Step.Shell -> {
+                        commandLauncher.execute(step.script, workspaceDir, environment)
+                    }
+                    is Step.Echo -> {
+                        commandLauncher.execute("echo '${step.message}'", workspaceDir, environment)
+                    }
+                    is Step.ArchiveArtifacts -> {
+                        // For archive artifacts, we just verify the files exist
+                        commandLauncher.execute("find . -path '${step.artifacts}' -type f", workspaceDir, environment)
+                    }
+                    else -> {
+                        // For unsupported steps, just log and continue
+                        CommandResult(0, "Step ${step::class.simpleName} not implemented", "", 0, true)
+                    }
                 }
             }
             
@@ -205,20 +230,96 @@ public class ContainerPipelineExecutor(
     /**
      * Sets up the workspace directory in the container
      */
-    private suspend fun setupWorkspace() {
-        commandLauncher.execute("mkdir -p $workspaceDir", null, emptyMap())
-        commandLauncher.execute("cd $workspaceDir", null, emptyMap())
+    private fun setupWorkspace() {
+        runBlocking {
+            commandLauncher.execute("mkdir -p $workspaceDir", null, emptyMap())
+            commandLauncher.execute("cd $workspaceDir", null, emptyMap())
+            
+            // Create a minimal gradle project structure for testing
+            createMinimalGradleProject()
+        }
+    }
+    
+    /**
+     * Creates a minimal gradle project in the container workspace
+     */
+    private fun createMinimalGradleProject() {
+        runBlocking {
+            // Create settings.gradle.kts
+            commandLauncher.execute("""
+                cat > $workspaceDir/settings.gradle.kts << 'EOF'
+rootProject.name = "hodei-test-project"
+include(":core")
+EOF
+            """.trimIndent(), null, emptyMap())
+            
+            // Create root build.gradle.kts
+            commandLauncher.execute("""
+                cat > $workspaceDir/build.gradle.kts << 'EOF'
+plugins {
+    kotlin("jvm") version "2.2.0"
+}
+
+repositories {
+    mavenCentral()
+}
+
+subprojects {
+    apply(plugin = "kotlin")
+    
+    repositories {
+        mavenCentral()
+    }
+    
+    dependencies {
+        implementation(kotlin("stdlib"))
+    }
+}
+EOF
+            """.trimIndent(), null, emptyMap())
+            
+            // Create core module directory structure
+            commandLauncher.execute("mkdir -p $workspaceDir/core/src/main/kotlin", null, emptyMap())
+            commandLauncher.execute("mkdir -p $workspaceDir/core/src/test/kotlin", null, emptyMap())
+            
+            // Create core/build.gradle.kts
+            commandLauncher.execute("""
+                cat > $workspaceDir/core/build.gradle.kts << 'EOF'
+plugins {
+    kotlin("jvm")
+}
+
+dependencies {
+    implementation(kotlin("stdlib"))
+    testImplementation(kotlin("test"))
+}
+EOF
+            """.trimIndent(), null, emptyMap())
+            
+            // Create a simple Kotlin file
+            commandLauncher.execute("""
+                cat > $workspaceDir/core/src/main/kotlin/TestClass.kt << 'EOF'
+package hodei.test
+
+class TestClass {
+    fun hello(): String = "Hello from Gradle build!"
+}
+EOF
+            """.trimIndent(), null, emptyMap())
+        }
     }
     
     /**
      * Finds artifacts matching the given pattern
      */
-    private suspend fun findArtifacts(pattern: String): List<String> {
-        val result = commandLauncher.execute("find . -path '$pattern' -type f", workspaceDir, emptyMap())
-        return if (result.success) {
-            result.stdout.split("\n").filter { it.isNotBlank() }
-        } else {
-            emptyList()
+    private fun findArtifacts(pattern: String): List<String> {
+        return runBlocking {
+            val result = commandLauncher.execute("find . -path '$pattern' -type f", workspaceDir, emptyMap())
+            if (result.success) {
+                result.stdout.split("\n").filter { it.isNotBlank() }
+            } else {
+                emptyList()
+            }
         }
     }
 }

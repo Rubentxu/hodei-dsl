@@ -28,22 +28,22 @@ public class ContainerCommandLauncher(
         val startTime = System.currentTimeMillis()
         
         try {
-            // Prepare command with working directory if specified
-            val fullCommand = if (workingDir != null) {
-                arrayOf("sh", "-c", "cd $workingDir && $command")
+            // Prepare environment export statements
+            val envExports = if (environment.isNotEmpty()) {
+                environment.map { "export ${it.key}='${it.value}'" }.joinToString("; ") + "; "
             } else {
-                arrayOf("sh", "-c", command)
+                ""
             }
             
-            // Prepare environment variables
-            val envArray = environment.map { "${it.key}=${it.value}" }.toTypedArray()
+            // Prepare command with working directory and environment if specified
+            val fullCommand = if (workingDir != null) {
+                arrayOf("sh", "-c", "cd $workingDir && $envExports$command")
+            } else {
+                arrayOf("sh", "-c", "$envExports$command")
+            }
             
             // Execute command in container
-            val execResult = if (envArray.isNotEmpty()) {
-                container.execInContainer(*fullCommand, *envArray)
-            } else {
-                container.execInContainer(*fullCommand)
-            }
+            val execResult = container.execInContainer(*fullCommand)
             
             val duration = System.currentTimeMillis() - startTime
             

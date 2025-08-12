@@ -63,5 +63,5 @@ public class PostBuilder {
         postActions.add(PostAction.changed(stepsBuilder.build()))
     }
     
-    internal fun build(): List<PostAction> = postActions.toList()
+    public fun build(): List<PostAction> = postActions.toList()
 }

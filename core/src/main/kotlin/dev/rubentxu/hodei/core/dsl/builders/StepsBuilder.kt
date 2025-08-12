@@ -2,6 +2,8 @@ package dev.rubentxu.hodei.core.dsl.builders
 
 import dev.rubentxu.hodei.core.dsl.annotations.PipelineDSL
 import dev.rubentxu.hodei.core.domain.model.*
+import dev.rubentxu.hodei.core.dsl.extensions.StepExtensionRegistry
+import dev.rubentxu.hodei.core.execution.PipelineExecutionException
 import kotlin.time.Duration
 
 /**
@@ -13,7 +15,7 @@ import kotlin.time.Duration
  */
 @PipelineDSL
 public class StepsBuilder {
-    private val steps: MutableList<Step> = mutableListOf()
+    private val steps: MutableList<Step> by lazy { mutableListOf() }
     
     // === BASIC STEPS ===
     
@@ -198,7 +200,17 @@ public class StepsBuilder {
      * Builds the list of configured steps
      * @return Immutable list of steps
      */
-    internal fun build(): List<Step> = steps.toList()
+    public fun build(): List<Step> = steps.toList()
+
+    /**
+     * Internal helper used by generated DSL functions to invoke a registered extension by [name].
+     * If the extension is not available, a clear error is thrown to guide the user.
+     */
+    public fun invokeExtension(name: String, scope: Any) {
+        val extension = StepExtensionRegistry.get(name)
+            ?: throw PipelineExecutionException("$name extension not available. Did you forget to add the plugin dependency?")
+        extension.execute(scope, this)
+    }
 }
 
 /**
@@ -206,7 +218,7 @@ public class StepsBuilder {
  */
 @PipelineDSL
 public class ParallelBuilder {
-    private val branches: MutableMap<String, List<Step>> = mutableMapOf()
+    private val branches: MutableMap<String, List<Step>> by lazy { mutableMapOf() }
     
     /**
      * Defines a parallel execution branch
@@ -219,7 +231,7 @@ public class ParallelBuilder {
         branches[name] = stepsBuilder.build()
     }
     
-    internal fun build(): Step.Parallel = Step.Parallel(branches.toMap())
+    public fun build(): Step.Parallel = Step.Parallel(branches.toMap())
 }
 
 /**
@@ -231,7 +243,7 @@ public class ArchiveArtifactsBuilder {
     public var allowEmptyArchive: Boolean = false
     public var fingerprint: Boolean = false
     
-    internal fun build(): Step.ArchiveArtifacts {
+    public fun build(): Step.ArchiveArtifacts {
         require(artifacts.isNotEmpty()) { "Artifacts pattern cannot be empty" }
         return Step.ArchiveArtifacts(artifacts, allowEmptyArchive, fingerprint)
     }
@@ -245,7 +257,7 @@ public class PublishTestResultsBuilder {
     public var testResultsPattern: String = ""
     public var allowEmptyResults: Boolean = false
     
-    internal fun build(): Step.PublishTestResults {
+    public fun build(): Step.PublishTestResults {
         require(testResultsPattern.isNotEmpty()) { "Test results pattern cannot be empty" }
         return Step.PublishTestResults(testResultsPattern, allowEmptyResults)
     }
@@ -260,7 +272,7 @@ public class StashBuilder {
     public var includes: String = ""
     public var excludes: String = ""
     
-    internal fun build(): Step.Stash {
+    public fun build(): Step.Stash {
         require(name.isNotEmpty()) { "Stash name cannot be empty" }
         require(includes.isNotEmpty()) { "Stash includes pattern cannot be empty" }
         return Step.Stash(name, includes, excludes)
