@@ -15,7 +15,12 @@ dependencies {
     // Testing dependencies
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)
+    testImplementation(libs.kotest.extensions.testcontainers)
     testImplementation(libs.mockk)
+    
+    // Testcontainers for integration tests
+    testImplementation(libs.testcontainers.core)
+    testImplementation(libs.testcontainers.junit.jupiter)
 }
 
 tasks.test {
