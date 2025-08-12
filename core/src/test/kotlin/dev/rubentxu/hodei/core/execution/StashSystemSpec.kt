@@ -31,8 +31,13 @@ class StashSystemSpec : BehaviorSpec({
             cacheDir = tempDir.resolve("cache"),
             isCleanWorkspace = false
         )
-        val context = ExecutionContext.default()
-        val executor = StepExecutor()
+        val context = ExecutionContext.builder()
+            .workDir(tempDir)
+            .workspace(workspace)
+            .environment(mapOf("TEST_MODE" to "true"))
+            .build()
+        val stashStorage = FileSystemStashStorage(tempDir.resolve("stash"))
+        val executor = StepExecutor(stashStorage = stashStorage)
         
         beforeContainer {
             // Create test file structure
@@ -50,6 +55,11 @@ class StashSystemSpec : BehaviorSpec({
             tempDir.resolve("src/test/MainTest.java").createFile().writeText("public class MainTest {}")
             tempDir.resolve("docs/README.md").createFile().writeText("# Project")
             tempDir.resolve("config.properties").createFile().writeText("env=test")
+        }
+        
+        beforeEach {
+            // Clean stash directory before each test  
+            tempDir.resolve("stash").toFile().deleteRecursively()
         }
         
         afterContainer {
@@ -235,19 +245,27 @@ class StashSystemSpec : BehaviorSpec({
             }
             
             then("should overwrite existing stash with same name") {
-                // Create initial stash
-                val initialStash = Step.Stash(name = "overwrite-test", includes = "**/*.java", excludes = "")
-                runBlocking { executor.execute(initialStash, context) }
+                // Create initial stash with original files  
+                val initialStash = Step.Stash(name = "overwrite-test", includes = "*.java,**/*.java", excludes = "")
+                val initialResult = runBlocking { executor.execute(initialStash, context) }
                 
-                // Create new files
+                initialResult.status shouldBe StepStatus.SUCCESS
+                val initialStashedFiles = initialResult.metadata["stashedFiles"] as List<String>
+                initialStashedFiles shouldHaveSize 3  // Original 3 Java files
+                
+                // Create new file in the workspace
                 tempDir.resolve("NewFile.java").createFile().writeText("public class NewFile {}")
                 
-                // Stash again with same name
-                val newStash = Step.Stash(name = "overwrite-test", includes = "**/*.java", excludes = "")
+                // Stash again with same name - should overwrite previous stash
+                val newStash = Step.Stash(name = "overwrite-test", includes = "*.java,**/*.java", excludes = "")
                 val result = runBlocking { executor.execute(newStash, context) }
                 
                 result.status shouldBe StepStatus.SUCCESS
                 val stashedFiles = result.metadata["stashedFiles"] as List<String>
+                stashedFiles shouldHaveSize 4  // Now should have 4 files (3 original + 1 new)
+                stashedFiles shouldContain "src/main/Main.java"
+                stashedFiles shouldContain "src/main/Utils.java" 
+                stashedFiles shouldContain "src/test/MainTest.java"
                 stashedFiles shouldContain "NewFile.java"
             }
         }

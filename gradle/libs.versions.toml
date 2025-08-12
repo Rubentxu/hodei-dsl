@@ -45,6 +45,9 @@ kubernetesClient = "18.0.1"
 # Reflection and scanning
 classgraph = "4.8.165"
 
+# Gradle tooling for dynamic compilation  
+gradleTooling = "7.6"
+
 # Spring integration (optional)
 springBoot = "3.2.1"
 
@@ -118,6 +121,9 @@ kubernetes-client = { module = "io.kubernetes:client-java", version.ref = "kuber
 
 # Reflection and scanning
 classgraph = { module = "io.github.classgraph:classgraph", version.ref = "classgraph" }
+
+# Gradle tooling API
+gradle-tooling-api = { module = "org.gradle:gradle-tooling-api", version.ref = "gradleTooling" }
 
 # Spring integration (optional)
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "springBoot" }

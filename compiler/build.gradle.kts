@@ -24,6 +24,9 @@ dependencies {
     // Code generation
     implementation(libs.kotlinpoet)
     
+    // Gradle tooling API for dynamic library compilation
+    implementation(gradleApi())
+    
     // Kotlin ecosystem
     implementation(libs.bundles.kotlinxEcosystem)
     

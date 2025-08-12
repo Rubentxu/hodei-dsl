@@ -30,6 +30,11 @@ Esta documentación está organizada por módulos y fases de implementación:
 - [**Diagramas de Arquitectura**](./diagrams/) - Diagramas técnicos
 - [**Flujos de Ejecución**](./flows/) - Diagramas de secuencia y flujo
 
+### 🕑 Contexto de Sesión
+- [**Compiler & Runtime – Contexto de Sesión**](./session-context-compiler-runtime.md)
+  - Mostrar por CLI: `gradle :cli:run --args "context"` (desde la raíz del repo)
+  - Ruta por defecto: `docs/session-context-compiler-runtime.md` (configurable con `--path`)
+
 ## Convenciones de Documentación
 
 - **Idiomas**: Toda la documentación técnica está en español e inglés

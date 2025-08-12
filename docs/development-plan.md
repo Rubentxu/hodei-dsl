@@ -22,6 +22,27 @@ Desarrollar un sistema Pipeline DSL en Kotlin que replique la funcionalidad comp
 
 ## Cronograma de Desarrollo
 
+### **Fase 0: Alineación con /docs y backlog inicial** 🧭
+**Duración**: 0.5-1 día  
+**Estado**: 🟡 En Progreso
+
+#### Tareas Principales
+- [x] Revisar documentación clave (/docs) y extraer requisitos
+- [x] Sincronizar el plan con especificaciones existentes
+- [x] Definir backlog inicial por módulo (core, compiler, execution, steps, plugins, cli, library)
+- [x] Seleccionar specs objetivo para la primera iteración y comandos de ejecución
+- [ ] Abrir issues/tickets por épica y módulo (opcional)
+
+#### Criterios de Aceptación
+- Plan actualizado y alineado con /docs
+- Fase 1 ajustada al estado real de la documentación
+- Backlog inicial definido y priorizado
+
+#### Entregables
+- Este archivo actualizado con Fase 0 y backlog inicial
+
+---
+
 ### **Fase 1: Documentación y Especificaciones** 📋
 **Duración**: 2-3 días  
 **Estado**: 🟡 En Progreso
@@ -343,3 +364,91 @@ Desarrollar un sistema Pipeline DSL en Kotlin que replique la funcionalidad comp
 **Versión del Plan**: 1.0  
 **Fecha de Creación**: $(date +'%Y-%m-%d')  
 **Próxima Revisión**: Semanal
+
+## Backlog Inicial por Módulo (alineado con /docs)
+
+Esta sección deriva directamente de las especificaciones en /docs y prioriza un arranque incremental. Cada ítem referencia su documento base cuando aplica.
+
+### 1) Núcleo (core)
+- Referencias: docs/api-core-spec.md, docs/dsl-specification.md, docs/architecture.md
+- MVP DSL validado: pipeline, agent(any/label), environment(set/credentials), stages, steps (echo, sh), post(always)
+- ExecutionContext: variables, workspace, logger configurable, stash básico
+- WhenCondition: all/any/not + DSL (ya modelado)
+- Builders: PipelineBuilder, StageBuilder, StepsBuilder coherentes con la spec
+- Tests a ejecutar (iteración 0):
+  - gradle :core:test --tests "dev.rubentxu.hodei.core.dsl.DSLBuilderSpec"
+  - gradle :core:test --tests "dev.rubentxu.hodei.core.domain.WhenConditionSpec"
+  - gradle :core:test --tests "dev.rubentxu.hodei.core.domain.WhenConditionDSLSpec"
+  - gradle :core:test --tests "dev.rubentxu.hodei.core.execution.ExecutionContextSpec"
+  - gradle :core:test --tests "dev.rubentxu.hodei.core.execution.ConfigurableLoggerSpec"
+  - gradle :core:test --tests "dev.rubentxu.hodei.core.execution.StashSystemSpec"
+- Criterios: specs anteriores en verde, sin API pública inestable adicional.
+
+### 2) Motor de Ejecución (execution)
+- Referencias: docs/execution-model.md, docs/architecture.md
+- Structured concurrency: PipelineExecutor/StageExecutor/StepExecutor coherentes con jerarquía de scopes
+- Dispatchers por WorkloadType y timeouts/retry básicos del FaultToleranceConfig
+- Logging de eventos de pipeline y métricas mínimas
+- Tests candidatos:
+  - gradle :execution:test --tests "dev.rubentxu.hodei.execution.BasicPipelineExecutorSpec"
+  - gradle :execution:test --tests "dev.rubentxu.hodei.execution.AdvancedPipelineExecutorSpec" (evitar en entornos limitados)
+
+### 3) Compilador (compiler)
+- Referencias: docs/session-context-compiler-runtime.md, compiler/README.md
+- Verificar integración HybridCompiler/GradleCompiler/ScriptCompiler conforme a docs
+- CacheManager operativo y validado con SHA-256; LibraryManager estable
+- Tests candidatos:
+  - gradle :compiler:test --tests "dev.rubentxu.hodei.compiler.CacheManagerSpec"
+  - gradle :compiler:test --tests "dev.rubentxu.hodei.compiler.LibraryManagerSpec"
+  - gradle :compiler:test --tests "dev.rubentxu.hodei.compiler.RuntimeIntegrationSpec"
+  - gradle :compiler:test --tests "dev.rubentxu.hodei.compiler.HybridCompilerSpec"
+
+### 4) Steps (steps)
+- Referencias: docs/dsl-specification.md (sección Steps), docs/api-core-spec.md
+- Prioridad: echo, sh, dir, withEnv; registro y resolución de steps
+- Compatibilidad de parámetros con Jenkins donde aplique
+
+### 5) Plugins (plugins)
+- Referencias: docs/plugin-system.md
+- Esqueleto: contratos de plugin, registry/discovery básico, isolation mínima
+- No se requiere generación dinámica aún (dejar para fase posterior)
+
+### 6) CLI (cli)
+- Referencias: docs/architecture.md (adapters)
+- Comando básico: hodei run <archivo.pipeline.kts>
+- Logging legible y códigos de salida; lectura de variables de entorno
+
+### 7) Librería embebida (library)
+- API mínima para invocar pipelines desde código Kotlin/Java
+- Alinear paquetes públicos con explicitApi()
+
+### 8) Ejemplos (examples)
+- Validar examples/simple-pipeline.kts con core/execution actuales
+- Agregar ejemplo de paralelismo reducido si es viable sin Docker
+
+---
+
+## Iteración 0 (1–2 días): entregable mínimo ejecutable
+- Objetivo: ejecutar pipelines básicos con echo/sh y logging, validando el DSL base y el contexto de ejecución.
+- Entregables:
+  - DSL base funcional (core)
+  - Ejecución secuencial de stages/steps (execution)
+  - Compilación de scripts simple si se usa .kts (compiler) o builder en código
+- Criterios de aceptación:
+  - Specs core listados en verde
+  - BasicPipelineExecutorSpec verde o parcialmente filtrado sin dependencias externas
+- Comandos útiles:
+  - gradle :core:test --tests "dev.rubentxu.hodei.core.*"
+  - gradle :execution:test --tests "dev.rubentxu.hodei.execution.BasicPipelineExecutorSpec"
+  - gradle :compiler:test --tests "dev.rubentxu.hodei.compiler.CacheManagerSpec"
+
+---
+
+## Selección de specs objetivo (primera iteración)
+- Core: DSLBuilderSpec, WhenConditionSpec, ExecutionContextSpec, ConfigurableLoggerSpec, StashSystemSpec
+- Execution: BasicPipelineExecutorSpec (si el entorno lo permite)
+- Compiler: CacheManagerSpec, HybridCompilerSpec (tiempos moderados)
+
+---
+
+Nota: para entornos con limitaciones (Docker/Testcontainers), ajustar ejecución con --tests selectivo y desactivar paralelismo de JUnit si es necesario (-Djunit.jupiter.execution.parallel.enabled=false).

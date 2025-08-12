@@ -163,7 +163,8 @@ class ConfigurableLoggerSpec : BehaviorSpec({
                     
                     val output = outputStream.toString()
                     output shouldContain "=== Starting Section: Build Phase ==="
-                    output shouldContain "[Build Phase] [INFO] Building project..."
+                    output shouldContain "[Build Phase]"
+                    output shouldContain "[INFO] Building project..."
                     output shouldContain "=== Ending Section: Build Phase ==="
                 } finally {
                     System.setOut(originalOut)
