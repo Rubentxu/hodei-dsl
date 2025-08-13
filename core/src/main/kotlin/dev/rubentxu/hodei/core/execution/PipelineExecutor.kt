@@ -57,7 +57,8 @@ public class PipelineExecutor(
         config.dispatcherConfig.systemDispatcher +
         CoroutineExceptionHandler { _, exception ->
             // Log unhandled exceptions but don't crash the executor
-            println("Unhandled exception in pipeline executor: ${exception.message}")
+            // TODO: Replace with proper logging framework
+            System.err.println("Unhandled exception in pipeline executor: ${exception.message}")
         }
     )
     
@@ -193,16 +194,21 @@ public class PipelineExecutor(
     ): List<StageResult> = coroutineScope {
         
         val results = mutableListOf<StageResult>()
-        val pipelineContext = context.copy(
-            environment = context.environment + pipeline.globalEnvironment + mapOf("EXECUTION_ID" to executionId)
-        )
+        
+        // Create the base pipeline environment that will be used for all stages
+        val basePipelineEnvironment = context.environment + pipeline.globalEnvironment + mapOf("EXECUTION_ID" to executionId)
         
         for ((index, stage) in pipeline.stages.withIndex()) {
             // Publish stage started event
             eventBus.publish(PipelineEvent.StageStarted(executionId, stage.name, index))
             
             try {
-                val stageResult = stageExecutor.execute(stage, pipelineContext, eventBus)
+                // Create a fresh context for each stage starting from the base pipeline environment
+                // This ensures stage environment isolation
+                val stageContext = context.copy(
+                    environment = basePipelineEnvironment // Start fresh from base environment
+                )
+                val stageResult = stageExecutor.execute(stage, stageContext, eventBus)
                 results.add(stageResult)
                 
                 // Publish stage completed event
@@ -325,7 +331,8 @@ private class DefaultPipelineEventBus(
                         listener.onEvent(event)
                     } catch (e: Exception) {
                         // Log but don't fail event processing
-                        println("Event listener failed: ${e.message}")
+                        // TODO: Replace with proper logging framework
+                        System.err.println("Event listener failed: ${e.message}")
                     }
                 }
             }

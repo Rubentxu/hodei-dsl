@@ -22,6 +22,7 @@ public class ExecutionContextBuilder {
     private var launcher: CommandLauncher? = null
     private var metrics: PipelineMetrics? = null
     private var artifactDir: Path? = null
+    private var stepExecutor: StepExecutor? = null
     
     /**
      * Sets the working directory
@@ -124,6 +125,14 @@ public class ExecutionContextBuilder {
     }
     
     /**
+     * Sets the step executor
+     * @param stepExecutor Step executor for nested step execution
+     */
+    public fun stepExecutor(stepExecutor: StepExecutor): ExecutionContextBuilder = apply {
+        this.stepExecutor = stepExecutor
+    }
+    
+    /**
      * Builds the ExecutionContext instance
      * @return Configured ExecutionContext
      */
@@ -144,6 +153,7 @@ public class ExecutionContextBuilder {
         val finalLauncher = launcher ?: LocalCommandLauncher()
         val finalMetrics = metrics ?: PipelineMetrics.start()
         val finalArtifactDir = artifactDir ?: workDir.resolve("artifacts")
+        val finalStepExecutor = stepExecutor ?: StepExecutor()
         
         return DefaultExecutionContext(
             workDir = workDir,
@@ -155,7 +165,8 @@ public class ExecutionContextBuilder {
             jobInfo = finalJobInfo,
             artifactDir = finalArtifactDir,
             launcher = finalLauncher,
-            metrics = finalMetrics
+            metrics = finalMetrics,
+            stepExecutor = finalStepExecutor
         )
     }
 }
@@ -176,7 +187,8 @@ public data class DefaultExecutionContext(
     override val jobInfo: JobInfo,
     override val artifactDir: Path,
     override val launcher: CommandLauncher,
-    override val metrics: PipelineMetrics
+    override val metrics: PipelineMetrics,
+    override val stepExecutor: StepExecutor
 ) : ExecutionContext {
     
     // Immutable view of environment

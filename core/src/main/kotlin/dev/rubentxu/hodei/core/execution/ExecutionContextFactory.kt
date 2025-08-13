@@ -49,7 +49,8 @@ public data class ExecutionContextConfig(
     val logger: PipelineLogger? = null,
     val launcher: CommandLauncher? = null,
     val metrics: PipelineMetrics? = null,
-    val artifactDir: Path? = null
+    val artifactDir: Path? = null,
+    val stepExecutor: StepExecutor? = null
 )
 
 /**
@@ -101,12 +102,14 @@ public class DefaultExecutionContextFactory(
         val workspace = config.workspace ?: workspaceFactory.createDefault()
         val jobInfo = config.jobInfo ?: jobInfoFactory.createDefault()
         val metrics = config.metrics ?: PipelineMetrics.start()
+        val stepExecutor = config.stepExecutor ?: StepExecutor()
         
         builder.logger(logger)
             .launcher(launcher)
             .workspace(workspace)
             .jobInfo(jobInfo)
             .metrics(metrics)
+            .stepExecutor(stepExecutor)
         
         config.artifactDir?.let { builder.artifactDir(it) }
         

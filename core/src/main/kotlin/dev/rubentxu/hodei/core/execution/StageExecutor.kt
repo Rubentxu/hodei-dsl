@@ -181,10 +181,22 @@ public class StageExecutor(
     
     /**
      * Prepares stage-specific execution context
+     * 
+     * Creates a new context with stage-specific environment variables.
+     * Stage environment variables override global ones, but are isolated
+     * to this stage execution only. This ensures proper environment isolation
+     * between stages while maintaining global variables.
      */
     private fun prepareStageContext(stage: Stage, context: ExecutionContext): ExecutionContext {
+        // Create stage environment by merging pipeline context + stage-specific variables
+        // The context already contains: system env + pipeline global env + EXECUTION_ID
+        // We add stage-specific environment variables on top of this base
+        val stageEnvironment = context.environment + stage.environment + mapOf(
+            "STAGE_NAME" to stage.name
+        )
+        
         return context.copy(
-            environment = context.environment + stage.environment,
+            environment = stageEnvironment,
             launcher = selectCommandLauncher(stage, context)
         )
     }
@@ -268,7 +280,8 @@ public class StageExecutor(
                 }
             } catch (e: Exception) {
                 // Log post action failures but don't fail the stage
-                println("Post action failed: ${e.message}")
+                // TODO: Replace with proper logging framework
+                System.err.println("Post action failed: ${e.message}")
             }
         }
     }

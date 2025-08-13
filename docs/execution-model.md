@@ -366,6 +366,7 @@ class PipelineExecutor(
     
     /**
      * Ejecuta steps de manera secuencial dentro de un stage
+     * Integrado con el sistema SOLID de handlers
      */
     private suspend fun executeStepsSequentially(
         steps: List<PipelineStep>,
@@ -381,27 +382,14 @@ class PipelineExecutor(
             
             val stepResult = withContext(stepDispatcher) {
                 try {
-                    // Pre-ejecución: validación y preparación
-                    val validationErrors = step.validate(context)
-                    if (validationErrors.isNotEmpty()) {
-                        StepResult.Failure(
-                            "Validation failed: ${validationErrors.joinToString(", ") { it.message }}"
-                        )
+                    // Intentar usar el sistema SOLID de handlers primero
+                    val handler = StepHandlerRegistry.getHandler(step::class)
+                    if (handler != null) {
+                        // Usar el nuevo sistema de handlers con lifecycle completo
+                        handler.executeWithLifecycle(step, context)
                     } else {
-                        step.prepare(context)
-                        
-                        // Ejecutar con timeout si está configurado
-                        val result = if (step.defaultTimeout != null) {
-                            withTimeout(step.defaultTimeout.toMillis()) {
-                                step.execute(context)
-                            }
-                        } else {
-                            step.execute(context)
-                        }
-                        
-                        // Post-ejecución: cleanup
-                        step.cleanup(context, result)
-                        result
+                        // Fallback al sistema legacy
+                        executeStepLegacy(step, context)
                     }
                 } catch (e: TimeoutCancellationException) {
                     logger.warn("Step ${step.name} timed out")
@@ -425,6 +413,37 @@ class PipelineExecutor(
         }
         
         return results
+    }
+    
+    /**
+     * Ejecución legacy para steps sin handler (FASE 5: será removido)
+     */
+    private suspend fun executeStepLegacy(
+        step: PipelineStep,
+        context: ExecutionContext
+    ): StepResult {
+        // Pre-ejecución: validación y preparación
+        val validationErrors = step.validate(context)
+        if (validationErrors.isNotEmpty()) {
+            return StepResult.Failure(
+                "Validation failed: ${validationErrors.joinToString(", ") { it.message }}"
+            )
+        }
+        
+        step.prepare(context)
+        
+        // Ejecutar con timeout si está configurado
+        val result = if (step.defaultTimeout != null) {
+            withTimeout(step.defaultTimeout.toMillis()) {
+                step.execute(context)
+            }
+        } else {
+            step.execute(context)
+        }
+        
+        // Post-ejecución: cleanup
+        step.cleanup(context, result)
+        return result
     }
     
     private fun selectStageDispatcher(stage: Stage): CoroutineDispatcher {
@@ -1084,6 +1103,71 @@ class TracingSupport(
 
 ---
 
+### Step Handler Integration Flow
+
+```mermaid
+sequenceDiagram
+  participant SE as StepExecutor
+  participant SHR as StepHandlerRegistry
+  participant ASH as AbstractStepHandler
+  participant CSH as ConcreteStepHandler
+  participant CTX as ExecutionContext
+
+  SE->>SE: executeStepsSequentially(steps, context)
+  loop for each step
+    SE->>SHR: getHandler(step::class)
+    alt Handler exists (SOLID)
+      SHR-->>SE: StepHandler<T>
+      SE->>ASH: executeWithLifecycle(step, context)
+      ASH->>CSH: validate(step, context)
+      CSH-->>ASH: List<ValidationError>
+      alt No validation errors
+        ASH->>CSH: prepare(step, context)
+        ASH->>CSH: execute(step, context)
+        ASH->>CSH: cleanup(step, context, result)
+        ASH->>ASH: enhanceResult(result)
+        ASH-->>SE: Enhanced StepResult
+      else Validation failed
+        ASH->>ASH: createValidationFailureResult()
+        ASH-->>SE: Failure StepResult
+      end
+    else No handler (Legacy)
+      SHR-->>SE: null
+      SE->>SE: executeStepLegacy(step, context)
+      SE-->>SE: Legacy StepResult
+    end
+  end
+```
+
+### Handler Decision Flow
+
+```mermaid
+flowchart TD
+  A[Step received] --> B{Handler available?}
+  B -->|Yes| C[Use SOLID Handler System]
+  B -->|No| D[Use Legacy Implementation]
+  
+  C --> E[AbstractStepHandler.executeWithLifecycle]
+  E --> F[Validate]
+  F --> G{Valid?}
+  G -->|No| H[Return Validation Error]
+  G -->|Yes| I[Prepare]
+  I --> J[Execute]
+  J --> K[Cleanup]
+  K --> L[Enhance Result]
+  L --> M[Return Enhanced StepResult]
+  
+  D --> N[Legacy executeStepLegacy]
+  N --> O[Basic validate/prepare/execute/cleanup]
+  O --> P[Return Basic StepResult]
+  
+  H --> Q[Final Result]
+  M --> Q
+  P --> Q
+```
+
+---
+
 ## Garantías del Sistema de Ejecución
 
 ### 🔒 **Correctness Guarantees**
@@ -1091,17 +1175,26 @@ class TracingSupport(
 - **Exception Safety**: Propagación controlada de errores sin resource leaks
 - **Atomicity**: Operaciones atómicas donde sea requerido
 - **Consistency**: Estado consistente durante toda la ejecución
+- **SOLID Architecture**: Handler system con lifecycle management completo
 
 ### ⚡ **Performance Guarantees**  
 - **Non-blocking I/O**: Todas las operaciones I/O son suspending functions
 - **Efficient Dispatching**: Selección automática de dispatcher por workload
 - **Resource Pooling**: Reutilización eficiente de conexiones y recursos
 - **Backpressure Handling**: Manejo automático de presión en el sistema
+- **Handler Optimization**: Sistema de handlers SOLID reduce overhead
 
 ### 🛡️ **Reliability Guarantees**
 - **Graceful Degradation**: Sistema sigue funcionando aunque algunos componentes fallen
 - **Timeout Protection**: Todos los niveles tienen timeouts configurables
 - **Retry with Backoff**: Reintentos inteligentes con jitter y backoff exponencial
 - **Circuit Breaker**: Protección contra cascading failures
+- **Hybrid Execution**: Fallback automático de handlers a legacy
 
-Este modelo de ejecución proporciona una base sólida para pipelines de alta performance, confiables y escalables.
+### 🎯 **Migration Guarantees**
+- **Backward Compatibility**: Sistema legacy funciona mientras se migra a handlers
+- **Incremental Migration**: Handlers se pueden añadir step por step
+- **Zero Downtime**: Transición transparente entre sistemas
+- **Future Proof**: Arquitectura preparada para nuevos tipos de step
+
+Este modelo de ejecución proporciona una base sólida para pipelines de alta performance, confiables y escalables, con migración incremental hacia arquitectura SOLID.

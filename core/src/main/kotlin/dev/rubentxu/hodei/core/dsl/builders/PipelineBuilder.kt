@@ -72,7 +72,8 @@ public class PipelineBuilder {
         // Allow empty pipelines for testing and special cases
         if (stages.isEmpty()) {
             // Log warning for production use
-            println("WARNING: Creating pipeline without stages. This may be intentional for testing.")
+            // TODO: Replace with proper logging framework
+            System.err.println("WARNING: Creating pipeline without stages. This may be intentional for testing.")
         }
         
         return Pipeline.builder()

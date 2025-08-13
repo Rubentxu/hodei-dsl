@@ -65,6 +65,11 @@ public interface ExecutionContext {
     public val metrics: PipelineMetrics
     
     /**
+     * Step executor for nested step execution
+     */
+    public val stepExecutor: StepExecutor
+    
+    /**
      * Crea un contexto derivado con modificaciones
      * Following immutable pattern for thread safety
      */

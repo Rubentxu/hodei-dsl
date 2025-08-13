@@ -27,12 +27,12 @@ public object DefaultHandlerRegistration {
         StepHandlerRegistry.register<Step.Stash>(StashStepHandler())
         StepHandlerRegistry.register<Step.Unstash>(UnstashStepHandler())
         
-        // TODO: Register complex handlers (FASE 3)
-        // StepHandlerRegistry.register<Step.Dir>(DirStepHandler())
-        // StepHandlerRegistry.register<Step.WithEnv>(WithEnvStepHandler())
-        // StepHandlerRegistry.register<Step.Parallel>(ParallelStepHandler())
-        // StepHandlerRegistry.register<Step.Retry>(RetryStepHandler())
-        // StepHandlerRegistry.register<Step.Timeout>(TimeoutStepHandler())
+        // Register complex handlers (FASE 3)
+        StepHandlerRegistry.register<Step.Dir>(DirStepHandler())
+        StepHandlerRegistry.register<Step.WithEnv>(WithEnvStepHandler())
+        StepHandlerRegistry.register<Step.Parallel>(ParallelStepHandler())
+        StepHandlerRegistry.register<Step.Retry>(RetryStepHandler())
+        StepHandlerRegistry.register<Step.Timeout>(TimeoutStepHandler())
     }
     
     /**
@@ -47,8 +47,13 @@ public object DefaultHandlerRegistration {
             Step.ArchiveArtifacts::class,
             Step.PublishTestResults::class,
             Step.Stash::class,
-            Step.Unstash::class
-            // TODO: Add complex handlers when implemented
+            Step.Unstash::class,
+            // Complex handlers (FASE 3)
+            Step.Dir::class,
+            Step.WithEnv::class,
+            Step.Parallel::class,
+            Step.Retry::class,
+            Step.Timeout::class
         )
         
         return expectedHandlers.all { StepHandlerRegistry.hasHandler(it) }

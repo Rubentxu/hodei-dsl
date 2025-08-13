@@ -90,7 +90,8 @@ public class StageBuilder(private val name: String) {
         
         // If no steps but has post actions, that's valid (post-only stage)
         if (steps.isEmpty() && postActions.isNotEmpty()) {
-            println("INFO: Stage '$name' has only post actions, no main steps.")
+            // TODO: Replace with proper logging framework
+            System.err.println("INFO: Stage '$name' has only post actions, no main steps.")
         }
         
         return Stage(

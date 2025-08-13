@@ -467,11 +467,272 @@ interface PipelineLogger {
 
 ### 3. Step Execution Model
 
-#### PipelineStep Interface
+#### SOLID Step Handler System (Nuevo)
+
+```kotlin
+/**
+ * Interface Strategy para manejo de steps con SOLID principles
+ * Reemplaza la ejecución directa por un sistema de handlers especializados
+ */
+interface StepHandler<T : Step> {
+    
+    /**
+     * Valida el step antes de la ejecución
+     * @param step Step a validar
+     * @param context Contexto de ejecución
+     * @return Lista de errores de validación
+     */
+    fun validate(step: T, context: ExecutionContext): List<ValidationError>
+    
+    /**
+     * Preparación previa a la ejecución
+     * @param step Step a preparar
+     * @param context Contexto de ejecución
+     */
+    suspend fun prepare(step: T, context: ExecutionContext)
+    
+    /**
+     * Ejecuta el step específico
+     * @param step Step a ejecutar
+     * @param context Contexto de ejecución
+     * @return Resultado de la ejecución
+     */
+    suspend fun execute(step: T, context: ExecutionContext): StepResult
+    
+    /**
+     * Limpieza posterior a la ejecución
+     * @param step Step ejecutado
+     * @param context Contexto de ejecución
+     * @param result Resultado de la ejecución
+     */
+    suspend fun cleanup(step: T, context: ExecutionContext, result: StepResult)
+}
+
+/**
+ * Base abstracta que implementa Template Method Pattern
+ * Proporciona lifecycle management común para todos los handlers
+ */
+abstract class AbstractStepHandler<T : Step> : StepHandler<T> {
+    
+    /**
+     * Ejecuta el step con lifecycle completo (Template Method)
+     * @param step Step a ejecutar
+     * @param context Contexto de ejecución
+     * @param config Configuración del executor
+     * @return Resultado mejorado con metadata
+     */
+    suspend fun executeWithLifecycle(
+        step: T, 
+        context: ExecutionContext, 
+        config: StepExecutorConfig
+    ): StepResult {
+        val startTime = Instant.now()
+        val stepName = getStepName(step)
+        
+        try {
+            // 1. Validación
+            val validationErrors = validate(step, context)
+            if (validationErrors.isNotEmpty()) {
+                return createValidationFailureResult(stepName, validationErrors, startTime)
+            }
+            
+            // 2. Preparación
+            prepare(step, context)
+            
+            // 3. Ejecución (con timeout opcional)
+            val result = if (config.defaultTimeout != null) {
+                withTimeout(config.defaultTimeout.toMillis()) {
+                    execute(step, context)
+                }
+            } else {
+                execute(step, context)
+            }
+            
+            // 4. Limpieza
+            cleanup(step, context, result)
+            
+            // 5. Mejora del resultado con metadata
+            return enhanceResult(result, startTime, context, stepName)
+            
+        } catch (e: TimeoutCancellationException) {
+            return createTimeoutResult(stepName, startTime)
+        } catch (e: Exception) {
+            return createFailureResult(stepName, e, startTime)
+        }
+    }
+    
+    /**
+     * Obtiene el nombre del step para logging y metadata
+     * @param step Step del que obtener el nombre
+     * @return Nombre descriptivo del step
+     */
+    protected abstract fun getStepName(step: T): String
+    
+    // Implementaciones por defecto de lifecycle methods
+    override fun validate(step: T, context: ExecutionContext): List<ValidationError> = emptyList()
+    override suspend fun prepare(step: T, context: ExecutionContext) {}
+    override suspend fun cleanup(step: T, context: ExecutionContext, result: StepResult) {}
+    
+    // Métodos auxiliares para creación de resultados
+    private suspend fun enhanceResult(
+        result: StepResult, 
+        startTime: Instant, 
+        context: ExecutionContext, 
+        stepName: String
+    ): StepResult = withContext(Dispatchers.Default) {
+        val duration = Duration.between(startTime, Instant.now())
+        result.copy(
+            metadata = result.metadata + mapOf(
+                "duration" to duration,
+                "stepName" to stepName,
+                "executionId" to context.executionId,
+                "timestamp" to Instant.now()
+            )
+        )
+    }
+    
+    private fun createValidationFailureResult(
+        stepName: String, 
+        errors: List<ValidationError>, 
+        startTime: Instant
+    ): StepResult = StepResult.Failure(
+        message = "Validation failed for step '$stepName': ${errors.joinToString { it.message }}",
+        metadata = mapOf(
+            "validationErrors" to errors,
+            "stepName" to stepName,
+            "startTime" to startTime
+        )
+    )
+    
+    private fun createTimeoutResult(stepName: String, startTime: Instant): StepResult = 
+        StepResult.Failure(
+            message = "Step '$stepName' timed out",
+            metadata = mapOf(
+                "stepName" to stepName,
+                "startTime" to startTime,
+                "cause" to "timeout"
+            )
+        )
+    
+    private fun createFailureResult(stepName: String, exception: Exception, startTime: Instant): StepResult = 
+        StepResult.Failure(
+            message = "Step '$stepName' failed: ${exception.message}",
+            cause = exception,
+            metadata = mapOf(
+                "stepName" to stepName,
+                "startTime" to startTime,
+                "exceptionType" to exception::class.simpleName
+            )
+        )
+}
+
+/**
+ * Registry para gestión centralizada de step handlers
+ * Implementa patrón Registry con thread-safety
+ */
+object StepHandlerRegistry {
+    
+    private val handlers = ConcurrentHashMap<KClass<out Step>, StepHandler<*>>()
+    
+    /**
+     * Registra un handler para un tipo específico de step
+     * @param stepClass Clase del step
+     * @param handler Handler especializado para ese step
+     */
+    fun <T : Step> register(stepClass: KClass<T>, handler: StepHandler<T>) {
+        handlers[stepClass] = handler
+    }
+    
+    /**
+     * Obtiene el handler registrado para un tipo de step
+     * @param stepClass Clase del step
+     * @return Handler registrado o null si no existe
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Step> getHandler(stepClass: KClass<T>): StepHandler<T>? {
+        return handlers[stepClass] as? StepHandler<T>
+    }
+    
+    /**
+     * Verifica si existe un handler para el tipo de step
+     * @param stepClass Clase del step
+     * @return true si existe handler
+     */
+    fun hasHandler(stepClass: KClass<out Step>): Boolean {
+        return handlers.containsKey(stepClass)
+    }
+    
+    /**
+     * Desregistra un handler
+     * @param stepClass Clase del step a desregistrar
+     */
+    fun unregister(stepClass: KClass<out Step>) {
+        handlers.remove(stepClass)
+    }
+    
+    /**
+     * Limpia todos los handlers registrados
+     */
+    fun clear() {
+        handlers.clear()
+    }
+    
+    /**
+     * Lista todos los tipos de step con handler registrado
+     * @return Set de clases de step registradas
+     */
+    fun getRegisteredStepTypes(): Set<KClass<out Step>> {
+        return handlers.keys.toSet()
+    }
+}
+
+/**
+ * Ejemplos de implementaciones concretas
+ */
+class EchoStepHandler : AbstractStepHandler<Step.Echo>() {
+    
+    override suspend fun execute(step: Step.Echo, context: ExecutionContext): StepResult {
+        context.logger.info(step.message)
+        return StepResult.Success(
+            message = step.message,
+            metadata = mapOf("stepType" to "echo")
+        )
+    }
+    
+    override fun validate(step: Step.Echo, context: ExecutionContext): List<ValidationError> {
+        return if (step.message.isBlank()) {
+            listOf(ValidationError.required("message", "Echo message cannot be blank"))
+        } else {
+            emptyList()
+        }
+    }
+    
+    override fun getStepName(step: Step.Echo): String = "echo"
+}
+
+class ShellStepHandler : AbstractStepHandler<Step.Shell>() {
+    
+    override suspend fun execute(step: Step.Shell, context: ExecutionContext): StepResult {
+        return context.launcher.execute(step.command)
+    }
+    
+    override fun validate(step: Step.Shell, context: ExecutionContext): List<ValidationError> {
+        return if (step.command.isBlank()) {
+            listOf(ValidationError.required("command", "Shell command cannot be blank"))
+        } else {
+            emptyList()
+        }
+    }
+    
+    override fun getStepName(step: Step.Shell): String = "sh"
+}
+```
+
+#### PipelineStep Interface (Legacy - Mantenido para compatibilidad)
 ```kotlin
 /**
  * Interface base para todos los steps del pipeline
- * Define el contrato de ejecución uniforme
+ * NOTA: Se mantiene para compatibilidad, pero se recomienda usar StepHandler
  */
 interface PipelineStep {
     
@@ -864,7 +1125,7 @@ interface CompiledPipeline {
 ### Pipeline Executor Interface
 ```kotlin
 /**
- * Motor de ejecución de pipelines con soporte para paralelismo
+ * Motor de ejecución de pipelines con soporte para paralelismo y sistema SOLID
  */
 interface PipelineExecutor {
     
@@ -884,12 +1145,30 @@ interface PipelineExecutor {
     suspend fun executeStage(stage: Stage, context: ExecutionContext): StageResult
     
     /**
-     * Ejecuta step individual
+     * Ejecuta step individual con sistema híbrido handler/legacy
      * @param step Step a ejecutar  
      * @param context Contexto de ejecución
      * @return Resultado del step
      */
-    suspend fun executeStep(step: PipelineStep, context: ExecutionContext): StepResult
+    suspend fun executeStep(step: PipelineStep, context: ExecutionContext): StepResult {
+        // Intentar usar sistema SOLID de handlers primero
+        val handler = StepHandlerRegistry.getHandler(step::class)
+        return if (handler != null) {
+            // Usar nuevo sistema de handlers
+            handler.executeWithLifecycle(step, context, config)
+        } else {
+            // Fallback al sistema legacy
+            executeStepLegacy(step, context)
+        }
+    }
+    
+    /**
+     * Ejecución legacy para steps sin handler (será deprecado en FASE 5)
+     * @param step Step a ejecutar
+     * @param context Contexto de ejecución
+     * @return Resultado del step
+     */
+    suspend fun executeStepLegacy(step: PipelineStep, context: ExecutionContext): StepResult
     
     /**
      * Cancela ejecución en progreso
@@ -915,6 +1194,31 @@ interface PipelineExecutor {
      * Estado actual de ejecuciones
      */
     fun getExecutionStatus(): Map<String, ExecutionStatus>
+    
+    /**
+     * Información sobre handlers registrados
+     */
+    fun getRegisteredHandlers(): Map<String, String> {
+        return StepHandlerRegistry.getRegisteredStepTypes()
+            .associate { it.simpleName ?: "Unknown" to it.qualifiedName ?: "Unknown" }
+    }
+}
+
+/**
+ * Configuración del Step Executor con soporte para handlers
+ */
+data class StepExecutorConfig(
+    val defaultTimeout: Duration? = Duration.ofMinutes(30),
+    val enableMetrics: Boolean = true,
+    val useHandlerSystem: Boolean = true,
+    val legacyFallback: Boolean = true,
+    val validationMode: ValidationMode = ValidationMode.STRICT
+)
+
+enum class ValidationMode {
+    STRICT,     // Fallar en cualquier error de validación
+    LENIENT,    // Log warnings pero continuar
+    DISABLED    // Sin validación
 }
 ```
 

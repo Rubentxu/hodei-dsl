@@ -23,6 +23,15 @@ dependencies {
     testImplementation(libs.testcontainers.junit.jupiter)
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.addAll(
+            "-Xcontext-parameters", // Enable context receivers
+            "-opt-in=kotlin.RequiresOptIn"
+        )
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
 }
